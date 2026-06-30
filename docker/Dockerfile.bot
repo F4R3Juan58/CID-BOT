@@ -1,0 +1,20 @@
+FROM node:20-alpine AS base
+
+FROM base AS builder
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+COPY . .
+RUN npm ci
+RUN npx prisma generate
+RUN npx turbo run build --filter=@cid-bot/bot
+
+FROM base AS runner
+WORKDIR /app
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 bot
+COPY --from=builder /app/node_modules/.prisma /app/node_modules/.prisma
+COPY --from=builder /app/packages/bot/dist /app/dist
+COPY --from=builder /app/packages/bot/package.json /app/package.json
+COPY --from=builder /app/prisma /app/prisma
+USER bot
+CMD ["node", "dist/index.js"]

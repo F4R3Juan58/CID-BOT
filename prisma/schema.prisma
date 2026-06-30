@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  price       Float
+  type        String   // "key" | "download" | "both"
+  imageUrl    String?
+  downloadUrl String?
+  active      Boolean  @default(true)
+  roleName    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  keys        Key[]
+  orders      Order[]
+  giveaways   Giveaway[]
+}
+
+model Key {
+  id         String    @id @default(cuid())
+  code       String    @unique
+  productId  String
+  product    Product   @relation(fields: [productId], references: [id])
+  status     String    @default("available") // available | sold | revoked
+  orderId    String?   @unique
+  order      Order?    @relation("KeyOrder", fields: [orderId], references: [id])
+  giveawayId String?
+  giveaway   Giveaway? @relation(fields: [giveawayId], references: [id])
+  createdAt  DateTime  @default(now())
+  usedAt     DateTime?
+}
+
+model Order {
+  id              String    @id @default(cuid())
+  discordUserId   String
+  discordUsername String
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id])
+  amount          Float
+  paymentMethod   String    // "paypal" | "stripe"
+  paymentId       String?
+  status          String    @default("pending_payment") // pending_payment | pending_approval | approved | delivered | rejected
+  resellerCode    String?
+  key             Key?      @relation("KeyOrder")
+  createdAt       DateTime  @default(now())
+  approvedAt      DateTime?
+  deliveredAt     DateTime?
+}
+
+model Customer {
+  id              String   @id @default(cuid())
+  discordUserId   String   @unique
+  discordUsername String
+  email           String?
+  verified        Boolean  @default(false)
+  totalSpent      Float    @default(0)
+  createdAt       DateTime @default(now())
+  orders          Order[]
+}
+
+model Giveaway {
+  id        String          @id @default(cuid())
+  productId String
+  product   Product         @relation(fields: [productId], references: [id])
+  title     String
+  winners   Int             @default(1)
+  startDate DateTime
+  endDate   DateTime
+  active    Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  entries   GiveawayEntry[]
+  keys      Key[]
+}
+
+model GiveawayEntry {
+  id              String   @id @default(cuid())
+  giveawayId      String
+  giveaway        Giveaway @relation(fields: [giveawayId], references: [id])
+  discordUserId   String
+  discordUsername String
+  enteredAt       DateTime @default(now())
+}
+
+model Invite {
+  id              String   @id @default(cuid())
+  inviterUserId   String
+  invitedUserId   String
+  invitedUsername String
+  code            String
+  joinedAt        DateTime @default(now())
+}
+
+model Reseller {
+  id              String   @id @default(cuid())
+  discordUserId   String
+  discordUsername String
+  code            String   @unique
+  commission      Float    @default(10)
+  totalSales      Int      @default(0)
+  totalCommission Float    @default(0)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+}
+
+model Ticket {
+  id              String   @id @default(cuid())
+  discordUserId   String
+  discordUsername String
+  channelId       String
+  reason          String
+  status          String   @default("open") // open | closed
+  createdAt       DateTime @default(now())
+  closedAt        DateTime?
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model ServerConfig {
+  id      String @id @default(cuid())
+  guildId String
+  key     String
+  value   String
+
+  @@unique([guildId, key])
+}
