@@ -1,0 +1,8 @@
+app = "cid-bot-discord"
+primary_region = "mad" # Cambia por tu región más cercana (ej: mia, lhr, etc.)
+
+[build]
+  dockerfile = "docker/Dockerfile.bot" # <-- Apunta directo al del bot
+
+# IMPORTANTE: Borra cualquier bloque [[services]] o [http_service] si venía en un fly.toml viejo,
+# ya que el bot no necesita recibir tráfico HTTP externo.
